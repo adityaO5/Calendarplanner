@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Calendar System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        
+        /* Core Styles */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --blur-amount: 10px;
+            --calendar-height: 70px;
+            --border-radius: 20px;
+            --transition-speed: 0.3s;
+        }
+
+        @font-face {
+            font-family: 'SF Pro Display';
+            src: url('https://fonts.cdnfonts.com/css/sf-pro-display');
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            background-size: cover;
+            background-position: center;
+            color: #e8e7e8;
+            transition: background-image var(--transition-speed) ease;
+        }
+
+        /* Glass Effect Components */
+        .glass-effect {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+        }
+
+        /* Calendar Container */
+        .calendar-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 50px auto;
+            max-width: 1200px;
+            height: var(--calendar-height);
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Month Styles */
+        .month {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 500;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .month:hover {
+            transform: scale(1.05);
+        }
+
+        /* Add Task Button */
+        .add-task-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .add-task-btn:hover {
+            background: white;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .month:hover .add-task-btn {
+            display: flex;
+        }
+
+        /* Task Modal */
+        .task-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 25px;
+            z-index: 1000;
+            min-width: 300px;
+        }
+
+        /* Mind Map Container */
+        .mind-map-container {
+            margin-top: 30px;
+            padding: 25px;
+        }
+
+        /* Task Items */
+        .task-item {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+        }
+
+        /* Task Controls */
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 2px solid #666;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-checkbox.checked {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .task-content {
+            flex: 1;
+            color: #030303;
+        }
+
+        .task-content.completed {
+            text-decoration: line-through;
+            color: #030303;
+            opacity: 0.7;
+        }
+
+        /* Utility Classes */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button-group button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+        .customize-bg {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 30px;
+                background: rgba(255, 255, 255, 0.9);
+                cursor: pointer;
+                font-family: inherit;
+                border: none;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+    </style>
+</head>
+<body>
+    <div class="calendar-container glass-effect" id="calendarBar"></div>
+    <div class="mind-map-container glass-effect" id="mindMap"></div>
+    <div class="overlay" id="overlay"></div>
+    <div class="task-modal glass-effect" id="taskModal">
+        <h3>Add Task</h3>
+        <input type="text" id="taskInput" placeholder="Enter task">
+        <div class="button-group">
+            <button onclick="Calendar.addTask()">Add</button>
+            <button onclick="Calendar.closeModal()">Cancel</button>
+        </div>
+    </div>
+    <input type="file" id="bgInput" accept="image/*" style="display: none">
+    <button class="customize-bg" onclick="document.getElementById('bgInput').click()">
+        Customize Background
+    </button>
+
+    <script>
+        // Background customization
+        document.getElementById('bgInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.body.style.backgroundImage = `url(${e.target.result})`;
+                        localStorage.setItem('background', e.target.result);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        // Calendar Application Class
+        class CalendarApp {
+            constructor() {
+                this.months = [
+                    'January', 'February', 'March', 'April',
+                    'May', 'June', 'July', 'August',
+                    'September', 'October', 'November', 'December'
+                ];
+
+                this.colors = [
+                    '#D6D6D6', '#7A5267', '#A8B5A2', '#C3A6C7',
+                    '#A1A56D', '#E8D8C4', '#D96C5E', '#D3B393',
+                    '#5F8A89', '#8F5E42', '#B5A89D', '#2D3E50'
+                ];
+
+                this.selectedMonth = null;
+                this.tasks = JSON.parse(localStorage.getItem('tasks')) || {};
+                this.init();
+            }
+
+            init() {
+                this.initializeCalendar();
+                this.setupEventListeners();
+                this.loadSavedBackground();
+                this.updateMindMap();
+            }
+
+            initializeCalendar() {
+                const calendarBar = document.getElementById('calendarBar');
+                calendarBar.innerHTML = '';
+
+                this.months.forEach((month, index) => {
+                    const monthElement = document.createElement('div');
+                    monthElement.className = 'month';
+                    monthElement.style.backgroundColor = this.colors[index];
+
+                    const addButton = document.createElement('div');
+                    addButton.className = 'add-task-btn';
+                    addButton.innerHTML = '+';
+                    addButton.onclick = (e) => {
+                        e.stopPropagation();
+                        this.openModal(month);
+                    };
+
+                    monthElement.appendChild(addButton);
+                    calendarBar.appendChild(monthElement);
+
+                    gsap.from(monthElement, {
+                        duration: 0.5,
+                        opacity: 0,
+                        y: 20,
+                        delay: index * 0.1
+                    });
+                });
+            }
+
+            setupEventListeners() {
+                document.getElementById('bgInput').addEventListener('change', (e) => {
+                    this.handleBackgroundChange(e);
+                });
+            }
+
+            handleBackgroundChange(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        document.body.style.backgroundImage = `url(${e.target.result})`;
+                        localStorage.setItem('background', e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+
+            loadSavedBackground() {
+                const savedBg = localStorage.getItem('background');
+                if (savedBg) {
+                    document.body.style.backgroundImage = `url(${savedBg})`;
+                }
+            }
+
+            openModal(month) {
+                this.selectedMonth = month;
+                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('taskModal').style.display = 'block';
+
+                gsap.from('#taskModal', {
+                    duration: 0.3,
+                    scale: 0.8,
+                    opacity: 0,
+                    ease: "back.out"
+                });
+            }
+
+            closeModal() {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('taskModal').style.display = 'none';
+            }
+
+            addTask() {
+                const taskInput = document.getElementById('taskInput');
+                const task = taskInput.value.trim();
+
+                if (task && this.selectedMonth) {
+                    if (!this.tasks[this.selectedMonth]) {
+                        this.tasks[this.selectedMonth] = [];
+                    }
+                    this.tasks[this.selectedMonth].push(task);
+                    localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                    taskInput.value = '';
+                    this.closeModal();
+                    this.updateMindMap();
+                }
+            }
+
+            createTaskElement(task, month, index) {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-item';
+                
+                const checkbox = document.createElement('div');
+                checkbox.className = 'task-checkbox';
+                checkbox.onclick = () => this.toggleTask(taskElement, checkbox);
+
+                const content = document.createElement('div');
+                content.className = 'task-content';
+                content.textContent = task;
+
+                const actions = document.createElement('div');
+                actions.className = 'task-actions';
+            //Inner task icons are here
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>'; // Trash icon
+                deleteBtn.onclick = () => this.deleteTask(month, index);
+
+                const editBtn = document.createElement('button');
+                editBtn.innerHTML = '<i class="fas fa-edit"></i>'; // Edit icon
+                editBtn.onclick = () => this.editTask(month, index);
+
+                // Optional: Add some styling
+                deleteBtn.style.border = "none";
+                deleteBtn.style.background = "transparent";
+                deleteBtn.style.cursor = "pointer";
+                deleteBtn.style.color = "red"; // Optional, change as needed
+
+                editBtn.style.border = "none";
+                editBtn.style.background = "transparent";
+                editBtn.style.cursor = "pointer";
+                editBtn.style.color = "black"; // Optional, change as needed
+
+
+                actions.appendChild(editBtn);
+                actions.appendChild(deleteBtn);
+
+                taskElement.appendChild(checkbox);
+                taskElement.appendChild(content);
+                taskElement.appendChild(actions);
+
+                return taskElement;
+            }
+
+            toggleTask(taskElement, checkbox) {
+                checkbox.classList.toggle('checked');
+                taskElement.querySelector('.task-content').classList.toggle('completed');
+            }
+
+            deleteTask(month, index) {
+                this.tasks[month].splice(index, 1);
+                localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                this.updateMindMap();
+            }
+
+            editTask(month, index) {
+                const newTask = prompt('Edit task:', this.tasks[month][index]);
+                if (newTask) {
+                    this.tasks[month][index] = newTask;
+                    localStorage.setItem('tasks', JSON.stringify(this.tasks));
+                    this.updateMindMap();
+                }
+            }
+
+            updateMindMap() {
+                const mindMap = document.getElementById('mindMap');
+                mindMap.innerHTML = '';
+
+                for (const month in this.tasks) {
+                    if (this.tasks[month].length > 0) {
+                        const monthSection = document.createElement('div');
+                        monthSection.innerHTML = `<h3>${month}</h3>`;
+
+                        this.tasks[month].forEach((task, index) => {
+                            const taskElement = this.createTaskElement(task, month, index);
+                            monthSection.appendChild(taskElement);
+                        });
+
+                        mindMap.appendChild(monthSection);
+                    }
+                }
+            }
+        }
+
+        // Initialize the Calendar Application
+        const Calendar = new CalendarApp();
+    </script>
+</body>
+</html>
